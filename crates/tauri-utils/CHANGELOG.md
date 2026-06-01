@@ -1,5 +1,15 @@
 # Changelog
 
+## \[2.9.3]
+
+### Enhancements
+
+- [`c2b8f4783`](https://www.github.com/tauri-apps/tauri/commit/c2b8f4783217d4a8a9e22b2d333727f4de2c57b0) ([#15373](https://www.github.com/tauri-apps/tauri/pull/15373) by [@MavenRain](https://www.github.com/tauri-apps/tauri/../../MavenRain)) Improve diagnostics for invalid plugin and permission identifiers.
+
+  The `Identifier` deserializer now wraps the inner error with the offending identifier string so the message reads `invalid plugin or permission identifier '<value>': ...`, surfacing the bad entry without requiring a grep through the file.
+
+  The previous parse failure (`failed to parse JSON: identifiers can only include lowercase ASCII, hyphens which are not leading or trailing, and a single colon if using a prefix at line 16 column 23`) now reads `failed to parse JSON: invalid plugin or permission identifier 'sqlite_proxy:allow-foo': identifiers can only include lowercase ASCII, hyphens which are not leading or trailing, and a single colon if using a prefix at line 16 column 23`.
+
 ## \[2.9.2]
 
 ### Bug Fixes
