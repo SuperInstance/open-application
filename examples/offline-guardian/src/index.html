@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Offline Guardian Demo</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      background: #0f172a;
+      color: #e2e8f0;
+      display: flex;
+      min-height: 100vh;
+    }
+
+    .sidebar {
+      width: 260px;
+      background: #1e293b;
+      padding: 24px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      border-right: 1px solid #334155;
+    }
+
+    .sidebar h1 {
+      font-size: 18px;
+      font-weight: 700;
+      color: #f8fafc;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 99px;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    .badge.online {
+      background: #064e3b;
+      color: #6ee7b7;
+    }
+    .badge.offline {
+      background: #7f1d1d;
+      color: #fca5a5;
+    }
+
+    .tier-badge {
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+    .tier-badge.cloud { background: #1e3a5f; color: #93c5fd; }
+    .tier-badge.cortex { background: #5b2a1e; color: #fdba74; }
+    .tier-badge.limb { background: #3b0f1f; color: #f9a8d4; }
+
+    .status-card {
+      background: #0f172a;
+      border-radius: 8px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .status-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 13px;
+    }
+    .status-row .label { color: #94a3b8; }
+
+    .main {
+      flex: 1;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    h2 {
+      font-size: 16px;
+      font-weight: 600;
+      color: #cbd5e1;
+    }
+
+    .controls {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    button {
+      background: #334155;
+      border: none;
+      color: #e2e8f0;
+      padding: 8px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 500;
+      transition: background 0.15s;
+    }
+    button:hover { background: #475569; }
+    button.primary { background: #2563eb; }
+    button.primary:hover { background: #1d4ed8; }
+    button.danger { background: #dc2626; }
+    button.danger:hover { background: #b91c1c; }
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    input, textarea {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 6px;
+      color: #e2e8f0;
+      padding: 8px 12px;
+      font-size: 13px;
+      width: 100%;
+    }
+    input:focus, textarea:focus {
+      outline: none;
+      border-color: #2563eb;
+    }
+
+    .note-form {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      max-width: 400px;
+    }
+
+    .notes-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .note-card {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      padding: 12px;
+    }
+    .note-card h3 { font-size: 14px; margin-bottom: 4px; }
+    .note-card p { font-size: 13px; color: #94a3b8; }
+
+    .event-log {
+      background: #0f172a;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      padding: 12px;
+      max-height: 200px;
+      overflow-y: auto;
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      font-size: 12px;
+    }
+    .event-log .entry { padding: 2px 0; }
+    .event-log .info { color: #67e8f9; }
+    .event-log .warn { color: #fde047; }
+    .event-log .error { color: #fca5a5; }
+    .event-log .success { color: #86efac; }
+
+    .escalation-bar {
+      height: 4px;
+      border-radius: 2px;
+      background: #22c55e;
+      transition: background 0.5s;
+    }
+    .escalation-bar.queueing { background: #eab308; }
+    .escalation-bar.readonly { background: #f97316; }
+    .escalation-bar.offline { background: #ef4444; }
+  </style>
+</head>
+<body>
+  <div class="sidebar">
+    <h1>🛡️ Offline Guardian</h1>
+
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <span id="status-badge" class="badge online">● Online</span>
+      <span id="tier-badge" class="tier-badge cortex">CORTEX</span>
+    </div>
+
+    <div class="status-card">
+      <div class="status-row">
+        <span class="label">Escalation</span>
+        <span id="escalation-state">Normal</span>
+      </div>
+      <div class="status-row">
+        <span class="label">Queued Mutations</span>
+        <span id="queued-count">0</span>
+      </div>
+      <div class="status-row">
+        <span class="label">Last Change</span>
+        <span id="last-change">—</span>
+      </div>
+    </div>
+
+    <div class="escalation-bar" id="escalation-bar"></div>
+  </div>
+
+  <div class="main">
+    <div>
+      <h2>📝 Create a Note</h2>
+      <div class="note-form">
+        <input id="note-title" placeholder="Title" />
+        <textarea id="note-body" placeholder="Body" rows="3"></textarea>
+        <div class="controls">
+          <button id="btn-create" class="primary" onclick="createNote()">Create Note</button>
+          <button id="btn-reconnect" onclick="forceReconnect()">Force Reconnect</button>
+          <button id="btn-refresh" onclick="refreshStatus()">Refresh Status</button>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <h2>📋 Notes</h2>
+      <div class="controls" style="margin-bottom:8px">
+        <button onclick="listNotes()">Refresh Notes</button>
+      </div>
+      <div id="notes-list" class="notes-list"></div>
+    </div>
+
+    <div>
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <h2>📜 Event Log</h2>
+        <button onclick="document.getElementById('event-log').innerHTML = ''">Clear</button>
+      </div>
+      <div id="event-log" class="event-log"></div>
+    </div>
+  </div>
+
+  <script>
+    // Import Tauri APIs (will use window.__TAURI__ when running in Tauri)
+    const { invoke, listen, event } = window.__TAURI__;
+
+    function log(msg, type = 'info') {
+      const el = document.getElementById('event-log');
+      const entry = document.createElement('div');
+      entry.className = `entry ${type}`;
+      entry.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+      el.appendChild(entry);
+      el.scrollTop = el.scrollHeight;
+    }
+
+    function updateUI(status) {
+      const badge = document.getElementById('status-badge');
+      const tierBadge = document.getElementById('tier-badge');
+      const escEl = document.getElementById('escalation-state');
+      const qCount = document.getElementById('queued-count');
+      const lastChange = document.getElementById('last-change');
+      const escBar = document.getElementById('escalation-bar');
+
+      if (status.online) {
+        badge.className = 'badge online';
+        badge.textContent = '● Online';
+      } else {
+        badge.className = 'badge offline';
+        badge.textContent = '● Offline';
+      }
+
+      const tier = (status.tier || 'cortex').toLowerCase();
+      tierBadge.className = `tier-badge ${tier}`;
+      tierBadge.textContent = tier.toUpperCase();
+
+      escEl.textContent = status.escalation || 'Normal';
+
+      // Escalation bar color
+      const esc = (status.escalation || '').toLowerCase();
+      escBar.className = 'escalation-bar';
+      if (esc.includes('queue')) escBar.classList.add('queueing');
+      else if (esc.includes('read') || esc.includes('only')) escBar.classList.add('readonly');
+      else if (esc.includes('offline') || esc.includes('full')) escBar.classList.add('offline');
+
+      qCount.textContent = status.queuedMutations || 0;
+      lastChange.textContent = status.lastChange ? new Date(status.lastChange).toLocaleTimeString() : '—';
+
+      // Update create button
+      const btn = document.getElementById('btn-create');
+      if (status.canWrite === false) {
+        btn.textContent = 'Queue Note (Offline)';
+        btn.className = 'danger';
+      } else if (!status.online) {
+        btn.textContent = 'Queue Note (Queuing)';
+        btn.className = '';
+      } else {
+        btn.textContent = 'Create Note';
+        btn.className = 'primary';
+      }
+    }
+
+    async function refreshStatus() {
+      try {
+        const status = await invoke('get_offline_status');
+        updateUI(status);
+        log('Status refreshed', 'info');
+      } catch (e) {
+        log(`Failed to refresh: ${e}`, 'error');
+      }
+    }
+
+    async function createNote() {
+      const title = document.getElementById('note-title').value;
+      const body = document.getElementById('note-body').value;
+      if (!title) { log('Title is required', 'warn'); return; }
+
+      try {
+        const result = await invoke('create_note', { title, body });
+        log(`Note: ${result}`, 'success');
+        document.getElementById('note-title').value = '';
+        document.getElementById('note-body').value = '';
+        await listNotes();
+        await refreshStatus();
+      } catch (e) {
+        log(`Failed: ${e}`, 'error');
+      }
+    }
+
+    async function listNotes() {
+      try {
+        const notes = await invoke('list_notes');
+        const el = document.getElementById('notes-list');
+        if (notes.length === 0) {
+          el.innerHTML = '<div style="color:#64748b;font-size:13px">No notes yet. Create one!</div>';
+          return;
+        }
+        el.innerHTML = notes.map(n => `
+          <div class="note-card">
+            <h3>#${n.id}: ${n.title}</h3>
+            <p>${n.body}</p>
+          </div>
+        `).join('');
+        log(`Loaded ${notes.length} note(s)`, 'info');
+      } catch (e) {
+        log(`Failed to list notes: ${e}`, 'error');
+      }
+    }
+
+    async function forceReconnect() {
+      try {
+        const status = await invoke('force_reconnect');
+        updateUI(status);
+        log('Forced reconnection check', 'info');
+        await listNotes();
+      } catch (e) {
+        log(`Reconnect failed: ${e}`, 'error');
+      }
+    }
+
+    // Set up event listeners from the offline-guardian plugin
+    async function setupEventListeners() {
+      try {
+        await listen('offline-guardian:connection-changed', (e) => {
+          updateUI(e.payload);
+          log(`Connection: ${e.payload.online ? 'online' : 'offline'}`, e.payload.online ? 'success' : 'warn');
+        });
+
+        await listen('offline-guardian:tier-changed', (e) => {
+          log(`Tier changed: ${e.payload.tier}`, 'info');
+          refreshStatus();
+        });
+
+        await listen('offline-guardian:escalation-changed', (e) => {
+          log(`Escalation: ${e.payload.state}`, 'warn');
+          refreshStatus();
+        });
+
+        await listen('offline-guardian:mutation', (e) => {
+          log(`Mutation ${e.payload.action}: ${e.payload.kind} (${e.payload.id.slice(0, 8)})`, 'info');
+          refreshStatus();
+        });
+
+        await listen('offline-guardian:sync', (e) => {
+          log(`Sync: ${e.payload.message}`, e.payload.success ? 'success' : 'warn');
+          refreshStatus();
+        });
+      } catch (e) {
+        log(`Setup listeners: ${e}`, 'warn');
+      }
+    }
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', async () => {
+      setupEventListeners();
+      await refreshStatus();
+      await listNotes();
+      log('Offline Guardian Example initialized', 'success');
+    });
+  </script>
+</body>
+</html>

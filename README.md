@@ -27,6 +27,22 @@ The quickest way to get started is to install the [prerequisites](https://v2.tau
 npm create tauri-app@latest
 ```
 
+> ## 🏆 SuperInstance Enhancement: Offline Guardian
+>
+> **Tauri apps that work offline. Not broken offline. USEFUL offline. Sync when you're back.**
+>
+> This fork adds the [`tauri-offline-guardian`](crates/tauri-offline-guardian/) crate — a first-class plugin that
+> brings offline-first architecture to desktop Tauri apps. Features include:
+>
+> - **Deadband filtering** — ±5s hysteresis to prevent connectivity thrashing.
+> - **Device tiers** — Cloud (full sync), Cortex (local-first, lazy sync), Limb (offline-only).
+> - **Graceful escalation** — 5 min offline → queue mutations; 30 min → read-only; 2 hr → full offline.
+> - **Sync handoff** — Replays queued mutations with conflict resolution when connection returns.
+> - **Push-down principle** — Offline mode retains ~80% capability, never breaks the experience.
+>
+> See [`INTEGRATION.md`](INTEGRATION.md) for the full guide, and the
+> [`examples/offline-guardian/`](examples/offline-guardian/) directory for a complete working example.
+
 ## Features
 
 The list of Tauri's features includes, but is not limited to:

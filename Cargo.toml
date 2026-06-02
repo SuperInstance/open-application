@@ -22,6 +22,8 @@ members = [
   "crates/tests/restart",
   "crates/tests/acl",
 
+  "crates/tauri-offline-guardian",
+
   # bench
   "bench",
   "bench/tests/cpu_intensive/src-tauri",
@@ -33,6 +35,7 @@ members = [
   "examples/resources/src-tauri",
   "examples/api/src-tauri",
   "examples/api/src-tauri/tauri-plugin-sample",
+  "examples/offline-guardian/src-tauri",
 ]
 resolver = "2"
 
