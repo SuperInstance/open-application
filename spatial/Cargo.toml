@@ -1,0 +1,17 @@
+[package]
+name = "cocapn-spatial"
+version = "0.1.0"
+edition = "2021"
+description = "CoCapn spatial navigation using Eisenstein hex lattice for marine routing"
+
+[dependencies]
+eisenstein = { version = "0.1" }
+snapkit = { version = "0.1" }
+
+[lib]
+name = "cocapn_spatial"
+path = "src/lib.rs"
+
+[[test]]
+name = "integration"
+path = "tests/integration.rs"
