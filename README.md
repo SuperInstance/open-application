@@ -27,6 +27,44 @@ The quickest way to get started is to install the [prerequisites](https://v2.tau
 npm create tauri-app@latest
 ```
 
+## Offline Guardian
+
+You're on a train. WiFi drops. Your app... freezes? Shows errors? Becomes useless?
+
+**Second 0** → Deadband absorbs. Network jitter happens. Your app doesn't flinch. The guardian knows drops shorter than 30 seconds aren't worth reacting to — it stays quiet, UX stays smooth.
+
+**Second 30** → Queue mutations. Still no network. The guardian starts buffering writes locally. Reads hit a cache layer. The UI stays interactive. The user doesn't know anything's wrong.
+
+**Minute 5** → Read-only mode. Writes are now politely rejected. But the app is still useful — browsing, viewing, exploring. Every read hits cached or synced data. Nobody sees a spinner of death.
+
+**Minute 30** → Full offline. The app shifts to its offline persona: local-first, cached UI, no network calls at all. It's not a fallback. It's a deliberate operating mode.
+
+### The Ah-Ha
+
+Your app was useful for **30 minutes without internet**. Not broken. Not frozen. *Useful.*
+
+### The Handoff
+
+WiFi returns. The guardian detects it within seconds. **47 queued mutations** replay in submission order. **3 conflicts** → resolved with LastWriterWins (configurable). The app never went down. The user barely noticed.
+
+### GuardianConfig
+
+```rust
+use tauri_offline_guardian::{GuardianConfig, OfflinePolicy};
+
+let config = GuardianConfig {
+    deadband_ms: 30_000,           // absorb 30s of jitter
+    read_only_after_ms: 300_000,    // 5 min until read-only
+    offline_after_ms: 1_800_000,    // 30 min until full offline
+    max_queued_mutations: 1000,
+    policy: OfflinePolicy::LastWriterWins,
+};
+```
+
+No superlatives. No hype. Just a timeline that turns network failure from an emergency into a non-event.
+
+---
+
 ## Features
 
 The list of Tauri's features includes, but is not limited to:

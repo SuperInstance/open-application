@@ -1,0 +1,28 @@
+[package]
+name = "tauri-offline-guardian"
+version = "0.1.0"
+description = "Graceful offline degradation for Tauri apps — deadband, mutation queuing, read-only fallback, and conflict resolution"
+authors.workspace = true
+homepage.workspace = true
+repository.workspace = true
+categories.workspace = true
+license.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+[package.metadata.docs.rs]
+features = ["full"]
+
+[features]
+default = ["full"]
+full = ["queue", "conflict-resolution"]
+queue = []
+conflict-resolution = []
+state = []
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1", features = ["sync", "time"] }
+tracing = { version = "0.1", optional = true }
+log = "0.4"
