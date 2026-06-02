@@ -1,0 +1,50 @@
+name: CI
+
+on:
+  push:
+    branches: [guardian]
+    paths:
+      - 'guardian/**'
+  pull_request:
+    branches: [guardian]
+    paths:
+      - 'guardian/**'
+
+defaults:
+  run:
+    working-directory: guardian
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: guardian
+      - name: Build
+        run: cargo build --release
+      - name: Test
+        run: cargo test
+      - name: Clippy
+        run: cargo clippy -- -D warnings
+      - name: Check formatting
+        run: cargo fmt -- --check
+
+  size-check:
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Build guardian
+        run: cargo build --release
+      - name: Analyze self
+        run: ./target/release/guardian analyze ./target/release/guardian --json
+      - name: Check budget
+        run: |
+          ./target/release/guardian init
+          # Allow guardian itself to be up to 20MB
+          sed -i 's/max_total_bytes = .*/max_total_bytes = 20971520/' guardian-budget.toml
+          ./target/release/guardian check ./target/release/guardian --budget guardian-budget.toml

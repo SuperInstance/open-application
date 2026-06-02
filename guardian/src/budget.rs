@@ -5,13 +5,13 @@ use std::path::Path;
 /// Configuration loaded from a TOML file.
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct BudgetConfig {
-    /// Maximum total app size in bytes
+    /// Maximum total app size in bytes (default: 15 MB)
     pub max_total_bytes: u64,
-    /// Maximum size for any single feature/crate in bytes
+    /// Maximum size for any single feature/crate in bytes (default: 2 MB)
     pub max_per_feature_bytes: u64,
-    /// Maximum WebView (HTML/CSS/JS/assets) bundle size in bytes
+    /// Maximum WebView (HTML/CSS/JS/assets) bundle size in bytes (default: 5 MB)
     pub max_webview_bundle_bytes: u64,
-    /// Maximum native library size in bytes
+    /// Maximum native library size in bytes (default: 8 MB)
     pub max_native_lib_bytes: u64,
     /// Features that are exempt from per-feature limits
     #[serde(default)]

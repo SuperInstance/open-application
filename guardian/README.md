@@ -1,41 +1,50 @@
-# App Size Guardian
+# App Size Guardian v0.2.0
 
-Tracks app binary size across builds. Enforces size budgets per feature. Detects bloat before it ships.
+> Track binary size across builds. Enforce size budgets. Detect bloat before it ships.
 
 Part of [SuperInstance/tauri](https://github.com/SuperInstance/tauri).
 
-## What it does
+## What's New in v0.2.0
 
-```
-$ guardian analyze ./target/release/my-app --cargo-toml ./Cargo.toml --assets-dir ./dist
+- 🔬 **Native binary analysis** — Uses the `object` crate for cross-platform ELF/Mach-O/PE parsing. No more shelling out to `size`/`nm`/`readelf`.
+- 🔌 **Tauri-specific adapter** — Parses `tauri.conf.json` for feature detection, plugin cross-referencing, and app metadata enrichment.
+- 💾 **Persistence** — Save/load size history to `.guardian-history.json`. Track binary size across builds with `--save`.
+- 📊 **Export formats** — JSON, Prometheus metrics, Markdown tables, CSV.
+- 🚨 **Alerting** — Detects growth spikes (>10%), large new dependencies (>500KB), absolute size thresholds, and debug info bloat.
+- 📈 **Trend analysis** — `guardian trend` shows size history with per-build deltas and top growth contributors.
+- 📋 **Integration examples** — CI workflow, pre-commit hook, Tauri CLI plugin.
 
-📐 App Size Guardian Report ═══════════════════════════════════
+## Quick Start
 
-  Your app is 12.3MB
+```bash
+# Install
+cargo install --path .
 
-  Composition
-    WebView assets  4.1MB (33.3%)
-    Native code     6.8MB (55.3%)
-    Debug info      1.2MB (9.8%)
+# Analyze a binary
+guardian analyze ./target/release/my-app
 
-  Largest Assets
-    app.js — 1.4MB (11.4%, javascript)
-    icon-512.png — 380.0KB (3.0%, icon)
-    vendor.js — 290.0KB (2.3%, javascript)
+# Analyze with Cargo.toml and Tauri config enrichment
+guardian analyze ./target/release/my-app \
+  --cargo-toml ./Cargo.toml \
+  --tauri-conf ./src-tauri/tauri.conf.json \
+  --assets-dir ./dist \
+  --save
 
-  Features by Size
-    serde_json                800.0KB (120 symbols)
-    tokio                     650.0KB (200 symbols)
-    tauri                     520.0KB (95 symbols)
+# Check against a budget
+guardian init                          # creates guardian-budget.toml
+guardian check ./target/release/my-app --budget guardian-budget.toml
 
-  ⚠ Bloat Detected
+# Compare two builds
+guardian delta --before ./build-v1 --after ./build-v2
 
-    🟡 Feature 'serde_json' adds 800.0KB across 120 symbols
-       → Consider whether serde_json is worth its size cost, or if a lighter alternative exists.
-    🔴 Debug info is 9.8% of binary (1.2MB of 12.3MB)
-       → Strip debug symbols from release builds with `strip = true` in Cargo.toml.
+# View size trend
+guardian trend --limit 20
 
-  ═════════════════════════════════════════════════════════════
+# Export as Prometheus metrics
+guardian export ./target/release/my-app --format prometheus -o metrics.txt
+
+# Check alerts
+guardian alerts ./target/release/my-app
 ```
 
 ## Commands
@@ -44,38 +53,40 @@ $ guardian analyze ./target/release/my-app --cargo-toml ./Cargo.toml --assets-di
 
 Analyze a binary or bundle directory and print a conservation report.
 
-```
-guardian analyze ./target/release/my-app
-guardian analyze ./target/release/bundle/ --json
-guardian analyze ./target/release/my-app --cargo-toml ./Cargo.toml --assets-dir ./dist
-```
+| Flag | Description |
+|------|-------------|
+| `--cargo-toml` | Path to Cargo.toml for dependency analysis |
+| `--assets-dir` | Path to assets directory |
+| `--tauri-conf` | Path to tauri.conf.json for Tauri-specific analysis |
+| `--json` | Output as JSON |
+| `--save` | Save to history file |
+| `--history` | Path to history file (default: `.guardian-history.json`) |
 
 ### `guardian check <PATH> --budget <FILE>`
 
 Check a binary against a size budget. Exits with code 1 on violations.
 
-```
-guardian check ./target/release/my-app --budget guardian-budget.toml
-```
-
 ### `guardian delta --before <PATH> --after <PATH>`
 
-Compare two builds. Shows what grew, what shrunk, what appeared, what vanished.
-
-```
-guardian delta --before ./build-v1 --after ./build-v2
-```
+Compare two builds. Shows section and feature deltas.
 
 ### `guardian init [OUTPUT]`
 
 Create a default budget file.
 
-```
-guardian init
-guardian init my-budget.toml
-```
+### `guardian export <PATH> --format <FORMAT>`
 
-## Budget file
+Export analysis in various formats: `json`, `prometheus`, `markdown`, `csv`.
+
+### `guardian trend`
+
+Show size trend across historical builds. Use `--limit` to control depth, `--markdown` for table output.
+
+### `guardian alerts <PATH>`
+
+Check for alert conditions: growth spikes, large new deps, absolute size thresholds, debug info bloat.
+
+## Budget File
 
 ```toml
 max_total_bytes = 15728640        # 15 MB
@@ -86,39 +97,60 @@ max_debug_info_ratio = 0.10       # 10%
 exempt_features = ["tauri", "webview"]
 ```
 
-## How it works
+## How It Works
 
-1. **Binary analysis** — runs `size`, `nm`, and `readelf` on ELF binaries to extract section sizes, symbol tables, and debug info ratios. For directory bundles, walks the tree and categorizes files by extension.
+### Binary Analysis (v0.2.0 — `object` crate)
 
-2. **Feature attribution** — cross-references Cargo.toml dependency names with Rust symbol prefixes (`<crate>::<module>::...`) to estimate per-crate size contribution.
+Uses the `object` crate to parse ELF, Mach-O, and PE binaries natively — no external tools required.
 
-3. **Bloat detection** — flags features adding >500KB, unused Cargo dependencies, unstripped debug info, oversized asset collections, and WebView bundle bloat.
+- **Sections**: Extracts all sections with sizes (`.text`, `.data`, `.rodata`, `.bss`, `.debug_*`)
+- **Symbols**: Lists top 50 symbols by size with section attribution
+- **Debug info**: Computes debug section total and ratio
+- **Format detection**: Identifies binary format and architecture
 
-4. **Delta tracking** — compares two analyses section-by-section and feature-by-feature, showing what changed between builds.
+### Feature Attribution
+
+Cross-references Cargo.toml dependency names with Rust symbol prefixes (`<crate>::<module>::...`) to estimate per-crate size contribution.
+
+### Tauri Integration
+
+Parses `tauri.conf.json` to extract:
+- App name and version
+- Plugin list
+- Bundle identifier
+- Window count
+- Cross-references plugins with detected binary symbols
+
+### Persistence
+
+Saves analysis snapshots to `.guardian-history.json` with:
+- Timestamp, total size, section/feature counts
+- Top 10 features by size
+- Build metadata (format, architecture)
+
+### Alerting Rules
+
+| Alert | Trigger | Severity |
+|-------|---------|----------|
+| Growth spike | >10% since last build | Critical |
+| Growth warning | >5% since last build | Warning |
+| Large new dep | New dependency >500KB | Warning |
+| Absolute size | >50MB binary | Critical |
+| Absolute warning | >30MB binary | Warning |
+| Debug info critical | >20% of binary | Critical |
+| Debug info warning | >10% of binary | Warning |
 
 ## Building
 
-```
-cd guardian
+```bash
 cargo build --release
 ```
 
-The binary is `guardian` — put it wherever you want. Run it in CI, run it locally, run it every build.
+## Testing
 
-## In CI
-
-```yaml
-- name: Check app size
-  run: |
-    cargo build --release
-    guardian check ./target/release/my-app --budget guardian-budget.toml \
-      --cargo-toml ./Cargo.toml --assets-dir ./dist
-```
-
-## Tests
-
-```
+```bash
 cargo test
+cargo clippy -- -D warnings
 ```
 
 ## License

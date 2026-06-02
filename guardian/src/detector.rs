@@ -9,6 +9,7 @@ use crate::budget::format_size;
 #[derive(Debug)]
 pub struct BloatFinding {
     pub severity: Severity,
+    #[allow(dead_code)]
     pub category: String,
     pub description: String,
     pub suggestion: String,

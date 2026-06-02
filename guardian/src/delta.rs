@@ -101,7 +101,7 @@ impl Delta {
             }
         }
 
-        section_deltas.sort_by(|a, b| b.delta_bytes.abs().cmp(&a.delta_bytes.abs()));
+        section_deltas.sort_by_key(|b| std::cmp::Reverse(b.delta_bytes.abs()));
 
         // Feature deltas
         let mut feature_deltas = Vec::new();
@@ -139,7 +139,7 @@ impl Delta {
             });
         }
 
-        feature_deltas.sort_by(|a, b| b.delta_bytes.abs().cmp(&a.delta_bytes.abs()));
+        feature_deltas.sort_by_key(|b| std::cmp::Reverse(b.delta_bytes.abs()));
 
         Delta {
             before_size: before.total_size,

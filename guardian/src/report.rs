@@ -36,7 +36,7 @@ impl Report {
 
         // Asset breakdown: top 10 by size
         let mut assets_sorted = analysis.assets.clone();
-        assets_sorted.sort_by(|a, b| b.size_bytes.cmp(&a.size_bytes));
+        assets_sorted.sort_by_key(|b| std::cmp::Reverse(b.size_bytes));
 
         let top_assets: Vec<AssetLine> = assets_sorted
             .iter()
@@ -71,7 +71,7 @@ impl Report {
 
         // Top features
         let mut features_sorted = analysis.features.clone();
-        features_sorted.sort_by(|a, b| b.size_bytes.cmp(&a.size_bytes));
+        features_sorted.sort_by_key(|b| std::cmp::Reverse(b.size_bytes));
         let top_features: Vec<FeatureLine> = features_sorted
             .iter()
             .take(10)
@@ -207,6 +207,7 @@ impl Report {
 }
 
 /// Build a natural-language conservation report paragraph.
+#[allow(dead_code)]
 pub fn paragraph(analysis: &BinaryAnalysis) -> String {
     let total = analysis.total_size.max(1);
     let total_str = format_size(analysis.total_size);
@@ -220,7 +221,7 @@ pub fn paragraph(analysis: &BinaryAnalysis) -> String {
 
     // Top 3 assets
     let mut assets_sorted = analysis.assets.clone();
-    assets_sorted.sort_by(|a, b| b.size_bytes.cmp(&a.size_bytes));
+    assets_sorted.sort_by_key(|b| std::cmp::Reverse(b.size_bytes));
     let top3: Vec<_> = assets_sorted.iter().take(3).collect();
     if top3.len() >= 2 {
         let total_top3: u64 = top3.iter().map(|a| a.size_bytes).sum();
