@@ -53,3 +53,4 @@ pids
 debug.log
 TODO.md
 .aider*
+Cargo.lock
