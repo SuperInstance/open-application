@@ -1,0 +1,30 @@
+# CAPABILITY.toml — open-application
+# Cross-platform application framework with capability loading and agent runtime.
+
+[capability]
+name = "open-application"
+version = "0.1.0"
+description = "Application framework with dynamic capability loading, agent runtime, and conservation-aware resource management"
+
+[capability.capabilities]
+capability_loader = "module: crates/tauri — dynamically loads and binds CAPABILITY.toml capabilities at runtime"
+agent_runtime = "fn spawn_agent(config: AgentConfig) -> AgentHandle — spawn agent with capability bindings"
+plugin_host = "fn register_plugin(manifest: CapabilityManifest) -> PluginId — register capability as plugin"
+window_manage = "fn create_window(capabilities: Vec<String>) -> Window — create window with capability overlay"
+ipc_bridge = "fn bridge(channel: &str, capability: &str) -> Bridge — IPC bridge to capability services"
+
+[capability.exports]
+AgentConfig = "struct { capabilities, budget, permissions }"
+AgentHandle = "struct { agent_id, status, capabilities }"
+PluginId = "struct { name, version, capabilities }"
+Bridge = "struct { channel, capability, state }"
+
+[capability.depends]
+depends = ["open-iterator", "open-terminal", "open-parallel", "open-mind"]
+
+[capability.integrations]
+open-iterator = "Editor panels with capability-aware auto-complete"
+open-terminal = "Terminal panes with conservation monitoring overlay"
+open-parallel = "Background task execution with spectral scheduling"
+open-mind = "Code analysis capabilities loaded as application plugins"
+open-tui = "TUI dashboard widgets embedded in application windows"
