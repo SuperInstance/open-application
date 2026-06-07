@@ -27,6 +27,8 @@ pub mod dpi;
 pub mod monitor;
 pub mod webview;
 pub mod window;
+pub mod capability_loader;
+pub mod agent_runtime;
 
 use dpi::{PhysicalPosition, PhysicalSize, Position, Rect, Size};
 use monitor::Monitor;
